@@ -89,6 +89,44 @@ private:
     }
 };
 
+static void write_u32_le(std::ostream& out, std::uint32_t value) {
+    char bytes[4];
+    bytes[0] = static_cast<char>(value & 0xFFu);
+    bytes[1] = static_cast<char>((value >> 8) & 0xFFu);
+    bytes[2] = static_cast<char>((value >> 16) & 0xFFu);
+    bytes[3] = static_cast<char>((value >> 24) & 0xFFu);
+    out.write(bytes, 4);
+}
+
+static bool read_u32_le(std::istream& in, std::uint32_t& value) {
+    unsigned char bytes[4];
+    in.read(reinterpret_cast<char*>(bytes), 4);
+    if (!in) {
+        return false;
+    }
+
+    value =
+        static_cast<std::uint32_t>(bytes[0]) |
+        (static_cast<std::uint32_t>(bytes[1]) << 8) |
+        (static_cast<std::uint32_t>(bytes[2]) << 16) |
+        (static_cast<std::uint32_t>(bytes[3]) << 24);
+
+    return true;
+}
+
+static std::uint32_t checksum(const std::string& key, const std::string& value) {
+    std::uint32_t hash = 2166136261u;
+    for (char c : key) {
+        hash ^= static_cast<unsigned char>(c);
+        hash *= 16777619u;
+    }
+    for (char c : value) {
+        hash ^= static_cast<unsigned char>(c);
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
 int main() {
     return 0;
 }
