@@ -148,6 +148,11 @@ private:
     }
 
     void write_record(const std::string& key, const std::string& value) {
+        if (key.size() > std::numeric_limits<std::uint32_t>::max() ||
+            value.size() > std::numeric_limits<std::uint32_t>::max()) {
+            throw std::runtime_error("Key/value is too large");
+            }
+
         std::uint32_t key_size = static_cast<std::uint32_t>(key.size());
         std::uint32_t value_size = static_cast<std::uint32_t>(value.size());
         std::uint32_t record_checksum = checksum(key, value);
@@ -250,16 +255,17 @@ private:
 
 
 int main() {
-    std::remove("/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb");
+    const std::string path = "/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb";
+    std::remove(path.c_str());
     {
-        KvStore db("/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb");
+        KvStore db(path);
         db.put("test1", "symbol:1");
         db.put("test67", "symbol:67");
         db.flush();
     }
 
     {
-        KvStore db("/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb");
+        KvStore db(path);
 
         std::string main_symbol;
         std::string print_symbol;
