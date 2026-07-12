@@ -4,4 +4,5 @@ project(PurpleDBMS)
 set(CMAKE_CXX_STANDARD 14)
 
 add_executable(PurpleDBMS
-        main.cpp)
+        main.cpp
+        btree.cpp)
