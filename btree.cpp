@@ -48,4 +48,52 @@ private:
 
         delete node;
     }
+
+    void insert_non_full(Node* node, int key) {
+        int i = static_cast<int>(node->keys.size()) - 1;
+
+        if (node->leaf) {
+            node->keys.push_back(0);
+            while (i >= 0 && key < node->keys[i]) {
+                node->keys[i + 1] = node->keys[i];
+                --i;
+            }
+            node->keys[i + 1] = key;
+            return;
+        }
+        while (i >= 0 && key < node->keys[i]) {
+            --i;
+        }
+        ++i;
+        if (is_full(node->children[i])) {
+            split_child(node, i);
+            if (key > node->keys[i]) {
+                ++i;
+            }
+        }
+
+        insert_non_full(node->children[i], key);
+    }
+
+    void split_child(Node* parent, int child_index) {
+        Node* left = parent->children[child_index];
+        Node* right = new Node(left->leaf);
+
+        int middle_index = min_degree_ - 1;
+        int middle_key = left->keys[middle_index];
+        for (int j = middle_index + 1; j < left->keys.size(); ++j) {
+            right->keys.push_back(left->keys[j]);
+        }
+        left->keys.resize(middle_index);
+        if (!left->leaf) {
+            for (int j = min_degree_; j < left->children.size(); ++j) {
+                right->children.push_back(left->children[j]);
+            }
+
+            left->children.resize(min_degree_);
+        }
+
+        parent->keys.insert(parent->keys.begin() + child_index, middle_key);
+        parent->children.insert(parent->children.begin() + child_index + 1, right);
+    }
 };
