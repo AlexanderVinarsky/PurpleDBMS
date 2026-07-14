@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -9,15 +10,16 @@
 #include <string>
 #include <unordered_map>
 
-class KvStore {
+#include "btree.h"
 
+class KvStore {
 public:
-    KvStore (const std::string& path) : path_(path) {
+    KvStore(const std::string &path) : path_(path) {
         open_or_create();
         rebuild_index();
     }
 
-    void put(const std::string& key, const std::string& value) {
+    void put(const std::string &key, const std::string &value) {
         file_.clear();
         file_.seekp(0, std::ios::end);
         std::uint64_t offset = file_.tellp();
@@ -25,7 +27,7 @@ public:
         index_[key] = offset;
     }
 
-    bool get(const std::string& key, std::string& out_value) {
+    bool get(const std::string &key, std::string &out_value) {
         auto it = index_.find(key);
         if (it == index_.end()) {
             return false;
@@ -44,9 +46,6 @@ public:
         file_.flush();
     }
 
-
-
-
 private:
     struct Record {
         std::string key;
@@ -57,7 +56,7 @@ private:
     std::fstream file_;
     std::unordered_map<std::string, std::uint64_t> index_;
 
-    static constexpr const char* kHeaderMagic = "PURPDB1";
+    static constexpr const char *kHeaderMagic = "PURPDB1";
     static constexpr std::uint32_t kMagic = 0x31424450u; // "PDB1"
     static constexpr std::size_t kHeaderSize = 8;
 
@@ -84,7 +83,7 @@ private:
     }
 
 
-    void write_header(std::ostream& out) {
+    void write_header(std::ostream &out) {
         char header[kHeaderSize] = {};
 
         for (std::size_t i = 0; kHeaderMagic[i] != '\0'; ++i) {
@@ -109,7 +108,7 @@ private:
         }
     }
 
-    static void write_u32_le(std::ostream& out, std::uint32_t value) {
+    static void write_u32_le(std::ostream &out, std::uint32_t value) {
         char bytes[4];
         bytes[0] = value & 0xFFu;
         bytes[1] = (value >> 8) & 0xFFu;
@@ -118,40 +117,41 @@ private:
         out.write(bytes, 4);
     }
 
-    static bool read_u32_le(std::istream& in, std::uint32_t& value) {
+    static bool read_u32_le(std::istream &in, std::uint32_t &value) {
         unsigned char bytes[4];
-        in.read(reinterpret_cast<char*>(bytes), 4);
+        in.read(reinterpret_cast<char *>(bytes), 4);
         if (!in) {
             return false;
         }
 
         value =
-            static_cast<std::uint32_t>(bytes[0]) |
-            (static_cast<std::uint32_t>(bytes[1]) << 8) |
-            (static_cast<std::uint32_t>(bytes[2]) << 16) |
-            (static_cast<std::uint32_t>(bytes[3]) << 24);
+                static_cast<std::uint32_t>(bytes[0]) |
+                (static_cast<std::uint32_t>(bytes[1]) << 8) |
+                (static_cast<std::uint32_t>(bytes[2]) << 16) |
+                (static_cast<std::uint32_t>(bytes[3]) << 24);
 
         return true;
     }
 
-    static std::uint32_t checksum(const std::string& key, const std::string& value) { //fnv_1a
+    static std::uint32_t checksum(const std::string &key, const std::string &value) {
+        //fnv_1a
         std::uint32_t hash = 2166136261u;
-        for (char c : key) {
+        for (char c: key) {
             hash ^= static_cast<unsigned char>(c);
             hash *= 16777619u;
         }
-        for (char c : value) {
+        for (char c: value) {
             hash ^= static_cast<unsigned char>(c);
             hash *= 16777619u;
         }
         return hash;
     }
 
-    void write_record(const std::string& key, const std::string& value) {
+    void write_record(const std::string &key, const std::string &value) {
         if (key.size() > std::numeric_limits<std::uint32_t>::max() ||
             value.size() > std::numeric_limits<std::uint32_t>::max()) {
             throw std::runtime_error("Key/value is too large");
-            }
+        }
 
         std::uint32_t key_size = static_cast<std::uint32_t>(key.size());
         std::uint32_t value_size = static_cast<std::uint32_t>(value.size());
@@ -173,7 +173,7 @@ private:
         }
     }
 
-    bool read_record_at(std::uint64_t offset, Record& out_record) {
+    bool read_record_at(std::uint64_t offset, Record &out_record) {
         file_.clear();
         file_.seekg(offset, std::ios::beg);
 
@@ -237,13 +237,13 @@ private:
             index_[record.key] = offset;
 
             std::uint64_t next_offset =
-                offset +
-                4 +                             // magic
-                4 +                             // key_size
-                4 +                             // value_size
-                4 +                             // checksum
-                record.key.size() +
-                record.value.size();
+                    offset +
+                    4 + // magic
+                    4 + // key_size
+                    4 + // value_size
+                    4 + // checksum
+                    record.key.size() +
+                    record.value.size();
 
             file_.clear();
             file_.seekg(next_offset, std::ios::beg);
@@ -253,31 +253,46 @@ private:
 };
 
 
-
 int main() {
-    const std::string path = "/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb";
-    std::remove(path.c_str());
-    {
-        KvStore db(path);
-        db.put("test1", "symbol:1");
-        db.put("test67", "symbol:67");
-        db.flush();
-    }
+    // const std::string path = "/home/alexandervinarsky/Projects/PurpleDBMS/PurpleDBMS/demo.pdb";
+    // std::remove(path.c_str());
+    // {
+    //     KvStore db(path);
+    //     db.put("test1", "symbol:1");
+    //     db.put("test67", "symbol:67");
+    //     db.flush();
+    // }
+    //
+    // {
+    //     KvStore db(path);
+    //
+    //     std::string main_symbol;
+    //     std::string print_symbol;
+    //     std::string missing_symbol;
+    //
+    //     if (db.get("test1", main_symbol)) {
+    //         std::cout << "test1: " << main_symbol << "\n";
+    //     }
+    //     if (db.get("test67", print_symbol)) {
+    //         std::cout << "test67: " << print_symbol << "\n";
+    //     }
+    // }
+    //
+    // return 0;
+    BTree tree(2);
+    tree.insert(10);
+    assert(tree.contains(10));
+    assert(!tree.contains(67));
 
-    {
-        KvStore db(path);
+    tree.insert(67);
+    tree.insert(5);
 
-        std::string main_symbol;
-        std::string print_symbol;
-        std::string missing_symbol;
+    assert(tree.contains(10));
+    assert(tree.contains(67));
+    assert(tree.contains(5));
+    assert(!tree.contains(100));
 
-        if (db.get("test1", main_symbol)) {
-            std::cout << "test1: " << main_symbol << "\n";
-        }
-        if (db.get("test67", print_symbol)) {
-            std::cout << "test67: " << print_symbol << "\n";
-        }
-    }
+    tree.print();
 
     return 0;
 }

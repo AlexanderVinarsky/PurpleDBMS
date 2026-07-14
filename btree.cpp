@@ -56,11 +56,9 @@ bool BTree::search(Node *node, int key) const {
     while (i < node->keys.size() && key > node->keys[i]) {
         ++i;
     }
-
     if (i < node->keys.size() && key == node->keys[i]) {
         return true;
     }
-
     if (node->leaf) {
         return false;
     }
@@ -68,12 +66,7 @@ bool BTree::search(Node *node, int key) const {
     return search(node->children[i], key);
 }
 
-
-bool is_full(Node *node) const {
-    return static_cast<int>(node->keys.size()) == max_keys();
-}
-
-void destroy(Node *node) {
+void BTree::destroy(Node *node) {
     if (node == nullptr) {
         return;
     }
@@ -85,8 +78,8 @@ void destroy(Node *node) {
     delete node;
 }
 
-void insert_non_full(Node *node, int key) {
-    int i = static_cast<int>(node->keys.size()) - 1;
+void BTree::insert_non_full(Node *node, int key) {
+    int i = node->keys.size() - 1;
 
     if (node->leaf) {
         node->keys.push_back(0);
@@ -117,16 +110,16 @@ void BTree::split_child(Node *parent, int child_index) {
 
     int middle_index = min_degree_ - 1;
     int middle_key = left->keys[middle_index];
-    for (int j = middle_index + 1; j < static_cast<int>(left->keys.size()); ++j) {
+    for (int j = middle_index + 1; j < left->keys.size(); ++j) {
         right->keys.push_back(left->keys[j]);
     }
     left->keys.resize(static_cast<std::size_t>(middle_index));
     if (!left->leaf) {
-        for (int j = min_degree_; j < static_cast<int>(left->children.size()); ++j) {
+        for (int j = min_degree_; j < left->children.size(); ++j) {
             right->children.push_back(left->children[j]);
         }
 
-        left->children.resize(static_cast<std::size_t>(min_degree_));
+        left->children.resize(min_degree_);
     }
 
     parent->keys.insert(parent->keys.begin() + child_index, middle_key);
