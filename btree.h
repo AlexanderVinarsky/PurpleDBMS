@@ -22,6 +22,7 @@ public:
 
     bool contains(int key) const;
     void insert(int key);
+    void erase(int key);
     void print() const;
 
 private:
@@ -30,6 +31,15 @@ private:
     bool search(Node* node, int key) const;
     void insert_non_full(Node* node, int key);
     void split_child(Node* parent, int child_index);
+    void remove_key(Node* node, int key);
+    void remove_from_leaf(Node* node, int key_index);
+    void remove_from_non_leaf(Node* node, int key_index);
+    int get_predecessor(Node* node) const;
+    int get_successor(Node* node) const;
+    void fill_child(Node* node, int child_index);
+    void borrow_from_previous(Node* node, int child_index);
+    void borrow_from_next(Node* node, int child_index);
+    void merge_children(Node* node, int child_index);
     void print_node(Node* node, int depth) const;
     void destroy(Node* node);
 };

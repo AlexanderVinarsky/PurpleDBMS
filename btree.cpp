@@ -38,6 +38,16 @@ void BTree::insert(int key) {
     insert_non_full(root_, key);
 }
 
+void BTree::erase(int key) {
+    remove_key(root_, key);
+
+    if (!root_->leaf && root_->keys.empty()) {
+        Node *old_root = root_;
+        root_ = root_->children[0];
+        delete old_root;
+    }
+}
+
 void BTree::print() const {
     print_node(root_, 0);
 }
@@ -124,6 +134,130 @@ void BTree::split_child(Node *parent, int child_index) {
 
     parent->keys.insert(parent->keys.begin() + child_index, middle_key);
     parent->children.insert(parent->children.begin() + child_index + 1, right);
+}
+
+void BTree::remove_key(Node *node, int key) {
+    int key_index = 0;
+    while (key_index < node->keys.size() && key > node->keys[key_index]) {
+        ++key_index;
+    }
+    if (key_index < node->keys.size() && node->keys[key_index] == key) {
+        if (node->leaf) {
+            remove_from_leaf(node, key_index);
+        } else {
+            remove_from_non_leaf(node, key_index);
+        }
+        return;
+    }
+    if (node->leaf) {
+        return;
+    }
+
+    bool key_should_be_in_last_child = key_index == node->keys.size();
+
+    if (node->children[key_index]->keys.size() < min_degree_) {
+        fill_child(node, key_index);
+    }
+    if (key_should_be_in_last_child && key_index > node->keys.size()) {
+        remove_key(node->children[key_index - 1], key);
+    } else {
+        remove_key(node->children[key_index], key);
+    }
+}
+
+void BTree::remove_from_leaf(Node *node, int key_index) {
+    node->keys.erase(node->keys.begin() + key_index);
+}
+
+void BTree::remove_from_non_leaf(Node *node, int key_index) {
+    int key = node->keys[key_index];
+    if (node->children[key_index]->keys.size() >= min_degree_) {
+        int predecessor = get_predecessor(node->children[key_index]);
+        node->keys[key_index] = predecessor;
+        remove_key(node->children[key_index], predecessor);
+        return;
+    }
+    if (node->children[key_index + 1]->keys.size() >= min_degree_) {
+        int successor = get_successor(node->children[key_index + 1]);
+        node->keys[key_index] = successor;
+        remove_key(node->children[key_index + 1], successor);
+        return;
+    }
+    merge_children(node, key_index);
+    remove_key(node->children[key_index], key);
+}
+
+int BTree::get_predecessor(Node *node) const {
+    while (!node->leaf) {
+        node = node->children.back();
+    }
+    return node->keys.back();
+}
+
+int BTree::get_successor(Node *node) const {
+    while (!node->leaf) {
+        node = node->children.front();
+    }
+    return node->keys.front();
+}
+
+void BTree::fill_child(Node *node, int child_index) {
+    if (child_index > 0 &&
+        node->children[child_index - 1]->keys.size() >= min_degree_) {
+        borrow_from_previous(node, child_index);
+        return;
+    }
+    if (child_index < node->children.size() - 1 &&
+        node->children[child_index + 1]->keys.size() >= min_degree_) {
+        borrow_from_next(node, child_index);
+        return;
+    }
+    if (child_index < node->children.size() - 1) {
+        merge_children(node, child_index);
+    } else {
+        merge_children(node, child_index - 1);
+    }
+}
+
+void BTree::borrow_from_previous(Node *node, int child_index) {
+    Node *child = node->children[child_index];
+    Node *sibling = node->children[child_index - 1];
+    child->keys.insert(child->keys.begin(), node->keys[child_index - 1]);
+    if (!child->leaf) {
+        child->children.insert(child->children.begin(), sibling->children.back());
+        sibling->children.pop_back();
+    }
+    node->keys[child_index - 1] = sibling->keys.back();
+    sibling->keys.pop_back();
+}
+
+void BTree::borrow_from_next(Node *node, int child_index) {
+    Node *child = node->children[child_index];
+    Node *sibling = node->children[child_index + 1];
+    child->keys.push_back(node->keys[child_index]);
+    if (!child->leaf) {
+        child->children.push_back(sibling->children.front());
+        sibling->children.erase(sibling->children.begin());
+    }
+    node->keys[child_index] = sibling->keys.front();
+    sibling->keys.erase(sibling->keys.begin());
+}
+
+void BTree::merge_children(Node *node, int child_index) {
+    Node *left = node->children[child_index];
+    Node *right = node->children[child_index + 1];
+    left->keys.push_back(node->keys[child_index]);
+    for (int key: right->keys) {
+        left->keys.push_back(key);
+    }
+    if (!left->leaf) {
+        for (Node *child: right->children) {
+            left->children.push_back(child);
+        }
+    }
+    node->keys.erase(node->keys.begin() + child_index);
+    node->children.erase(node->children.begin() + child_index + 1);
+    delete right;
 }
 
 void BTree::print_node(Node *node, int depth) const {
