@@ -7,20 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(purpledb_core
         src/btree.cpp
         src/kv_store.cpp
-        tests/test_main.cpp
-        tests/test_btree.cpp
-        tests/test_btree.h
-        tests/test_kv_store.cpp
-        include/purpledb/kv_store.h
-        src/kv_store.cpp
 )
 
 target_include_directories(purpledb_core PUBLIC
         include
+        include/purpledb
 )
 
 add_executable(PurpleDBMSDemo
-        apps/demo.cpp
+        main.cpp
 )
 
 target_link_libraries(PurpleDBMSDemo

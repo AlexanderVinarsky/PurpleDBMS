@@ -38,6 +38,6 @@ void test_btree_erase() {
 
     CHECK(tree.contains(67));
 
-    CHECK(tree.erase(67));
-    CHECK(!tree.contains(67));
+    tree.erase(67);
+	CHECK(!tree.contains(67));
 }

@@ -5,14 +5,14 @@
 #include <stdexcept>
 #include <string>
 
-#define CHECK(condition)
-do {
-if (!(condition)) {
-throw std::runtime_error(
-std::string("CHECK failed: ") + #condition +
-" at " + __FILE__ + ":" + std::to_string(__LINE__)
-);
-}
+#define CHECK(condition) \
+do { \
+if (!(condition)) { \
+throw std::runtime_error( \
+std::string("CHECK failed: ") + #condition + \
+" at " + __FILE__ + ":" + std::to_string(__LINE__) \
+); \
+} \
 } while (false)
 
 inline void run_test(const std::string& name, void (*test_func)()) {
