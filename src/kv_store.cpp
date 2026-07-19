@@ -43,6 +43,14 @@ void KvStore::flush() {
     file_.flush();
 }
 
+std::size_t KvStore::size() const {
+    return index_.size();
+}
+
+bool KvStore::empty() const {
+    return index_.empty();
+}
+
 void KvStore::open_or_create() {
     file_.open(path_, std::ios::binary | std::ios::in | std::ios::out);
     if (!file_.is_open()) {
@@ -211,7 +219,7 @@ void KvStore::rebuild_index() {
     file_.seekg(kHeaderSize, std::ios::beg);
 
     while (true) {
-        std::uint64_t offset = static_cast<std::uint64_t>(file_.tellg());
+        std::uint64_t offset = file_.tellg();
 
         Record record;
         if (!read_record_at(offset, record)) {

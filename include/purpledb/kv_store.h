@@ -1,5 +1,5 @@
 #include <cstdint>
-#include <cstdint>
+#include <cstddef>
 #include <fstream>
 #include <string>
 #include <unordered_map>
@@ -10,6 +10,8 @@ public:
     void put(const std::string& key, const std::string& value);
     bool get(const std::string& key, std::string& out_value);
     void flush();
+    std::size_t size() const;
+    bool empty() const;
 
 private:
     struct Record {

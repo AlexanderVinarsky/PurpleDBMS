@@ -79,3 +79,24 @@ void test_kv_store_missing_key() {
     }
     std::remove(kTestDbPath);
 }
+
+void test_kv_store_size_empty() {
+    std::remove(kTestDbPath);
+    {
+        KvStore db(kTestDbPath);
+
+        CHECK(db.empty());
+        CHECK(db.size() == 0);
+
+        db.put("test1", "symbol:1");
+        CHECK(!db.empty());
+        CHECK(db.size() == 1);
+
+        db.put("test67", "symbol:67");
+        CHECK(!db.empty());
+        CHECK(db.size() == 2);
+
+        db.flush();
+    }
+    std::remove(kTestDbPath);
+}
