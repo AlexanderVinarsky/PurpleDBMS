@@ -51,6 +51,13 @@ bool KvStore::empty() const {
     return index_.empty();
 }
 
+void KvStore::erase(const std::string &key) {
+    file_.clear();
+    file_.seekp(0, std::ios::end);
+    write_delete_record(key);
+    index_.erase(key);
+}
+
 void KvStore::open_or_create() {
     file_.open(path_, std::ios::binary | std::ios::in | std::ios::out);
     if (!file_.is_open()) {
@@ -149,6 +156,7 @@ void KvStore::write_record(const std::string &key, const std::string &value) {
     std::uint32_t record_checksum = checksum(key, value);
 
     write_u32_le(file_, kMagic);
+    write_u32_le(file_, static_cast<std::uint32_t>(RecordType::Put));
     write_u32_le(file_, key_size);
     write_u32_le(file_, value_size);
     write_u32_le(file_, record_checksum);
@@ -164,11 +172,35 @@ void KvStore::write_record(const std::string &key, const std::string &value) {
     }
 }
 
+void KvStore::write_delete_record(const std::string &key) {
+    if (key.size() > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error("Key is too large");
+    }
+
+    std::uint32_t key_size = static_cast<std::uint32_t>(key.size());
+    std::uint32_t value_size = 0;
+    std::uint32_t record_checksum = checksum(key, "");
+
+    write_u32_le(file_, kMagic);
+    write_u32_le(file_, static_cast<std::uint32_t>(RecordType::Delete));
+    write_u32_le(file_, key_size);
+    write_u32_le(file_, value_size);
+    write_u32_le(file_, record_checksum);
+
+    if (!key.empty()) {
+        file_.write(key.data(), static_cast<std::streamsize>(key.size()));
+    }
+    if (!file_) {
+        throw std::runtime_error("Cant write delete record");
+    }
+}
+
 bool KvStore::read_record_at(std::uint64_t offset, Record &out_record) {
     file_.clear();
     file_.seekg(offset, std::ios::beg);
 
     std::uint32_t magic = 0;
+    std::uint32_t record_type = 0;
     std::uint32_t key_size = 0;
     std::uint32_t value_size = 0;
     std::uint32_t stored_checksum = 0;
@@ -177,6 +209,13 @@ bool KvStore::read_record_at(std::uint64_t offset, Record &out_record) {
         return false;
     }
     if (magic != kMagic) {
+        return false;
+    }
+    if (!read_u32_le(file_, record_type)) {
+        return false;
+    }
+    if (record_type != static_cast<std::uint32_t>(RecordType::Put) &&
+        record_type != static_cast<std::uint32_t>(RecordType::Delete)) {
         return false;
     }
     if (!read_u32_le(file_, key_size)) {
@@ -207,6 +246,7 @@ bool KvStore::read_record_at(std::uint64_t offset, Record &out_record) {
     if (checksum(key, value) != stored_checksum) {
         return false;
     }
+    out_record.type = static_cast<RecordType>(record_type);
     out_record.key = key;
     out_record.value = value;
     return true;
@@ -225,11 +265,16 @@ void KvStore::rebuild_index() {
         if (!read_record_at(offset, record)) {
             break;
         }
-        index_[record.key] = offset;
+        if (record.type == RecordType::Delete) {
+            index_.erase(record.key);
+        } else {
+            index_[record.key] = offset;
+        }
 
         std::uint64_t next_offset =
                 offset +
                 4 + // magic
+                4 + // record_type
                 4 + // key_size
                 4 + // value_size
                 4 + // checksum

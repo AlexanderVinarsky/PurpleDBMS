@@ -1,3 +1,6 @@
+
+
+
 #include <cstdint>
 #include <cstddef>
 #include <fstream>
@@ -12,9 +15,16 @@ public:
     void flush();
     std::size_t size() const;
     bool empty() const;
+    void erase(const std::string& key);
 
 private:
+    enum class RecordType : std::uint32_t {
+        Put = 1,
+        Delete = 2
+    };
+
     struct Record {
+        RecordType type;
         std::string key;
         std::string value;
     };
@@ -33,6 +43,7 @@ private:
     static bool read_u32_le(std::istream& in, std::uint32_t& value);
     static std::uint32_t checksum(const std::string& key, const std::string& value);
     void write_record(const std::string& key, const std::string& value);
+    void write_delete_record(const std::string& key);
     bool read_record_at(std::uint64_t offset, Record& out_record);
     void rebuild_index();
 };
