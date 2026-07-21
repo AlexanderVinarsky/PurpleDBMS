@@ -41,6 +41,7 @@ private:
     void borrow_from_next(Node* node, int child_index);
     void merge_children(Node* node, int child_index);
     void print_node(Node* node, int depth) const;
+    int find_key_position(Node* node, int key) const;
     void destroy(Node* node);
 };
 
