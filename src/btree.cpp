@@ -278,3 +278,32 @@ void BTree::print_node(Node *node, int depth) const {
         print_node(child, depth + 1);
     }
 }
+
+std::vector<int> BTree::range(int min_key, int max_key) const {
+    std::vector<int> result;
+    if (min_key > max_key) {
+        return result;
+    }
+    range_node(root_, min_key, max_key, result);
+    return result;
+}
+
+void BTree::range_node(Node *node, int min_key, int max_key, std::vector<int> &out) const {
+    if (node == nullptr) {
+        return;
+    }
+    for (std::size_t i = 0; i < node->keys.size(); ++i) {
+        if (!node->leaf && min_key < node->keys[i]) {
+            range_node(node->children[i], min_key, max_key, out);
+        }
+        if (node->keys[i] > max_key) {
+            return;
+        }
+        if (node->keys[i] >= min_key) {
+            out.push_back(node->keys[i]);
+        }
+    }
+    if (!node->leaf) {
+        range_node(node->children[node->keys.size()], min_key, max_key, out);
+    }
+}
