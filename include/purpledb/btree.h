@@ -24,6 +24,7 @@ public:
     void insert(int key);
     void erase(int key);
     void print() const;
+    std::vector<int> range(int min_key, int max_key) const;
 
 private:
     int max_keys() const;
@@ -42,7 +43,6 @@ private:
     void merge_children(Node* node, int child_index);
     void print_node(Node* node, int depth) const;
     int find_key_position(Node* node, int key) const;
-    std::vector<int> range(int min_key, int max_key) const;
     void range_node(Node *node, int min_key, int max_key, std::vector<int> &out) const;
     void destroy(Node* node);
 };
